@@ -4,8 +4,9 @@ import com.myseals.dto.StockMovementRequestDTO;
 import com.myseals.dto.StockMovementResponseDTO;
 import com.myseals.model.*;
 import com.myseals.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -15,16 +16,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class StockMovementService {
 
-    @Autowired
-    private StockMovementRepository stockMovementRepository;
-    @Autowired
-    private SealRepository sealRepository;
-    @Autowired
-    private OfficeRepository officeRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final StockMovementRepository stockMovementRepository;
+    private final SealRepository sealRepository;
+    private final OfficeRepository officeRepository;
+    private final UserRepository userRepository;
 
     public List<StockMovementResponseDTO> findAll() {
         return stockMovementRepository.findAll().stream()
@@ -32,89 +30,86 @@ public class StockMovementService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<StockMovementResponseDTO> findById(UUID id) {
+    public Optional<StockMovementResponseDTO> findById(@NonNull UUID id) {
         return stockMovementRepository.findById(id).map(this::convertToDto);
     }
 
-    public StockMovementResponseDTO createStockMovement(StockMovementRequestDTO stockMovementRequestDTO) {
-        Seal seal = sealRepository.findById(stockMovementRequestDTO.getSealId())
+    public StockMovementResponseDTO createStockMovement(@NonNull StockMovementRequestDTO stockMovementRequestDTO) {
+        UUID sealId = stockMovementRequestDTO.getSealId();
+        Seal seal = sealRepository.findById(sealId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal not found"));
 
-        Office fromOffice = null;
-        if (stockMovementRequestDTO.getFromOfficeId() != null) {
-            fromOffice = officeRepository.findById(stockMovementRequestDTO.getFromOfficeId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "From Office not found"));
+        StockMovement movement = new StockMovement();
+        movement.setSeal(seal);
+        movement.setMovementType(MovementType.valueOf(stockMovementRequestDTO.getMovementType()));
+        movement.setNotes(stockMovementRequestDTO.getNotes());
+
+        UUID fromOfficeId = stockMovementRequestDTO.getFromOfficeId();
+        if (fromOfficeId != null) {
+            Office fromOffice = officeRepository.findById(fromOfficeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Source office not found"));
+            movement.setFromOffice(fromOffice);
         }
 
-        Office toOffice = null;
-        if (stockMovementRequestDTO.getToOfficeId() != null) {
-            toOffice = officeRepository.findById(stockMovementRequestDTO.getToOfficeId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "To Office not found"));
+        UUID toOfficeId = stockMovementRequestDTO.getToOfficeId();
+        if (toOfficeId != null) {
+            Office toOffice = officeRepository.findById(toOfficeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination office not found"));
+            movement.setToOffice(toOffice);
         }
 
-        User fromUser = null;
-        if (stockMovementRequestDTO.getFromUserId() != null) {
-            fromUser = userRepository.findById(stockMovementRequestDTO.getFromUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "From User not found"));
+        UUID fromUserId = stockMovementRequestDTO.getFromUserId();
+        if (fromUserId != null) {
+            User fromUser = userRepository.findById(fromUserId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Source user not found"));
+            movement.setFromUser(fromUser);
         }
 
-        User toUser = null;
-        if (stockMovementRequestDTO.getToUserId() != null) {
-            toUser = userRepository.findById(stockMovementRequestDTO.getToUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "To User not found"));
+        UUID toUserId = stockMovementRequestDTO.getToUserId();
+        if (toUserId != null) {
+            User toUser = userRepository.findById(toUserId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination user not found"));
+            movement.setToUser(toUser);
         }
 
-        User movedBy = userRepository.findById(stockMovementRequestDTO.getMovedByUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Moved By User not found"));
+        UUID movedByUserId = stockMovementRequestDTO.getMovedByUserId();
+        User movedBy = userRepository.findById(movedByUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mover user not found"));
+        movement.setMovedBy(movedBy);
 
-        StockMovement stockMovement = new StockMovement();
-        stockMovement.setSeal(seal);
-        stockMovement.setMovementType(MovementType.valueOf(stockMovementRequestDTO.getMovementType()));
-        stockMovement.setFromOffice(fromOffice);
-        stockMovement.setToOffice(toOffice);
-        stockMovement.setFromUser(fromUser);
-        stockMovement.setToUser(toUser);
-        stockMovement.setMovedBy(movedBy);
-        stockMovement.setNotes(stockMovementRequestDTO.getNotes());
-
-        StockMovement savedStockMovement = stockMovementRepository.save(stockMovement);
-        return convertToDto(savedStockMovement);
+        StockMovement savedMovement = stockMovementRepository.save(movement);
+        return convertToDto(savedMovement);
     }
 
-    public void deleteById(UUID id) {
+    public void deleteById(@NonNull UUID id) {
         stockMovementRepository.deleteById(id);
     }
 
-    private StockMovementResponseDTO convertToDto(StockMovement stockMovement) {
+    private StockMovementResponseDTO convertToDto(StockMovement movement) {
         StockMovementResponseDTO dto = new StockMovementResponseDTO();
-        dto.setMovementId(stockMovement.getMovementId());
-        dto.setSealId(stockMovement.getSeal().getSealId());
-        dto.setSealNumber(stockMovement.getSeal().getSealNumber());
-        dto.setMovementType(stockMovement.getMovementType().name());
-        dto.setNotes(stockMovement.getNotes());
-        dto.setMovementDate(stockMovement.getMovementDate());
-        dto.setCreatedAt(stockMovement.getCreatedAt());
+        dto.setMovementId(movement.getMovementId());
+        dto.setSealId(movement.getSeal().getSealId());
+        dto.setMovementType(movement.getMovementType().name());
+        dto.setMovementDate(movement.getMovementDate());
+        dto.setNotes(movement.getNotes());
+        dto.setCreatedAt(movement.getCreatedAt());
 
-        if (stockMovement.getFromOffice() != null) {
-            dto.setFromOfficeId(stockMovement.getFromOffice().getOfficeId());
-            dto.setFromOfficeName(stockMovement.getFromOffice().getOfficeName());
+        if (movement.getFromOffice() != null) {
+            dto.setFromOfficeId(movement.getFromOffice().getOfficeId());
         }
-        if (stockMovement.getToOffice() != null) {
-            dto.setToOfficeId(stockMovement.getToOffice().getOfficeId());
-            dto.setToOfficeName(stockMovement.getToOffice().getOfficeName());
+        if (movement.getToOffice() != null) {
+            dto.setToOfficeId(movement.getToOffice().getOfficeId());
         }
-        if (stockMovement.getFromUser() != null) {
-            dto.setFromUserId(stockMovement.getFromUser().getUserId());
-            dto.setFromUserName(stockMovement.getFromUser().getFullName());
+        if (movement.getFromUser() != null) {
+            dto.setFromUserId(movement.getFromUser().getUserId());
         }
-        if (stockMovement.getToUser() != null) {
-            dto.setToUserId(stockMovement.getToUser().getUserId());
-            dto.setToUserName(stockMovement.getToUser().getFullName());
+        if (movement.getToUser() != null) {
+            dto.setToUserId(movement.getToUser().getUserId());
         }
-        if (stockMovement.getMovedBy() != null) {
-            dto.setMovedByUserId(stockMovement.getMovedBy().getUserId());
-            dto.setMovedByUserName(stockMovement.getMovedBy().getFullName());
+        if (movement.getMovedBy() != null) {
+            dto.setMovedByUserId(movement.getMovedBy().getUserId());
         }
+
         return dto;
     }
 }

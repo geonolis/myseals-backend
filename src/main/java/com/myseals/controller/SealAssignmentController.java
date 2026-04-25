@@ -3,9 +3,10 @@ package com.myseals.controller;
 import com.myseals.dto.SealAssignmentRequestDTO;
 import com.myseals.dto.SealAssignmentResponseDTO;
 import com.myseals.service.SealAssignmentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -14,39 +15,41 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/seal-assignments")
+@RequiredArgsConstructor
 public class SealAssignmentController {
 
-    @Autowired
-    private SealAssignmentService sealAssignmentService;
+    private final SealAssignmentService sealAssignmentService;
 
     @GetMapping
     public ResponseEntity<List<SealAssignmentResponseDTO>> getAllSealAssignments() {
-        List<SealAssignmentResponseDTO> sealAssignments = sealAssignmentService.findAll();
-        return ResponseEntity.ok(sealAssignments);
+        return ResponseEntity.ok(sealAssignmentService.findAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SealAssignmentResponseDTO> getSealAssignmentById(@PathVariable UUID id) {
-        return sealAssignmentService.findById(id)
+    public ResponseEntity<SealAssignmentResponseDTO> getSealAssignmentById(@PathVariable @NonNull UUID id) {
+        UUID assignmentId = id;
+        return sealAssignmentService.findById(assignmentId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<SealAssignmentResponseDTO> createSealAssignment(@Valid @RequestBody SealAssignmentRequestDTO sealAssignmentRequestDTO) {
-        SealAssignmentResponseDTO createdSealAssignment = sealAssignmentService.createSealAssignment(sealAssignmentRequestDTO);
-        return new ResponseEntity<>(createdSealAssignment, HttpStatus.CREATED);
+    public ResponseEntity<SealAssignmentResponseDTO> createSealAssignment(@Valid @RequestBody @NonNull SealAssignmentRequestDTO sealAssignmentRequestDTO) {
+        SealAssignmentResponseDTO createdAssignment = sealAssignmentService.createSealAssignment(sealAssignmentRequestDTO);
+        return new ResponseEntity<>(createdAssignment, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SealAssignmentResponseDTO> updateSealAssignment(@PathVariable UUID id, @Valid @RequestBody SealAssignmentRequestDTO sealAssignmentRequestDTO) {
-        SealAssignmentResponseDTO updatedSealAssignment = sealAssignmentService.updateSealAssignment(id, sealAssignmentRequestDTO);
-        return ResponseEntity.ok(updatedSealAssignment);
+    public ResponseEntity<SealAssignmentResponseDTO> updateSealAssignment(@PathVariable @NonNull UUID id, @Valid @RequestBody @NonNull SealAssignmentRequestDTO sealAssignmentRequestDTO) {
+        UUID assignmentId = id;
+        SealAssignmentResponseDTO updatedAssignment = sealAssignmentService.updateSealAssignment(assignmentId, sealAssignmentRequestDTO);
+        return ResponseEntity.ok(updatedAssignment);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSealAssignment(@PathVariable UUID id) {
-        sealAssignmentService.deleteById(id);
+    public ResponseEntity<Void> deleteSealAssignment(@PathVariable @NonNull UUID id) {
+        UUID assignmentId = id;
+        sealAssignmentService.deleteById(assignmentId);
         return ResponseEntity.noContent().build();
     }
 }

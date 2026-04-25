@@ -6,8 +6,9 @@ import com.myseals.model.SealBatch;
 import com.myseals.model.User;
 import com.myseals.repository.SealBatchRepository;
 import com.myseals.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -17,12 +18,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SealBatchService {
 
-    @Autowired
-    private SealBatchRepository sealBatchRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final SealBatchRepository sealBatchRepository;
+    private final UserRepository userRepository;
 
     public List<SealBatchResponseDTO> findAll() {
         return sealBatchRepository.findAll().stream()
@@ -30,19 +30,13 @@ public class SealBatchService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<SealBatchResponseDTO> findById(UUID id) {
+    public Optional<SealBatchResponseDTO> findById(@NonNull UUID id) {
         return sealBatchRepository.findById(id).map(this::convertToDto);
     }
 
-    public SealBatchResponseDTO createSealBatch(SealBatchRequestDTO sealBatchRequestDTO) {
+    public SealBatchResponseDTO createSealBatch(@NonNull SealBatchRequestDTO sealBatchRequestDTO) {
         if (sealBatchRepository.findByBatchNumber(sealBatchRequestDTO.getBatchNumber()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Seal batch with this number already exists");
-        }
-
-        User registeredBy = null;
-        if (sealBatchRequestDTO.getRegisteredByUserId() != null) {
-            registeredBy = userRepository.findById(sealBatchRequestDTO.getRegisteredByUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registered by user not found"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Batch number already exists");
         }
 
         SealBatch sealBatch = new SealBatch();
@@ -52,36 +46,41 @@ public class SealBatchService {
         sealBatch.setEndSealNumber(sealBatchRequestDTO.getEndSealNumber());
         sealBatch.setQuantity(sealBatchRequestDTO.getQuantity());
         sealBatch.setReceivedDate(sealBatchRequestDTO.getReceivedDate());
-        sealBatch.setRegisteredBy(registeredBy);
 
-        SealBatch savedSealBatch = sealBatchRepository.save(sealBatch);
-        return convertToDto(savedSealBatch);
-    }
-
-    public SealBatchResponseDTO updateSealBatch(UUID id, SealBatchRequestDTO sealBatchRequestDTO) {
-        SealBatch existingSealBatch = sealBatchRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal batch not found"));
-
-        existingSealBatch.setManufacturer(sealBatchRequestDTO.getManufacturer());
-        existingSealBatch.setBatchNumber(sealBatchRequestDTO.getBatchNumber());
-        existingSealBatch.setStartSealNumber(sealBatchRequestDTO.getStartSealNumber());
-        existingSealBatch.setEndSealNumber(sealBatchRequestDTO.getEndSealNumber());
-        existingSealBatch.setQuantity(sealBatchRequestDTO.getQuantity());
-        existingSealBatch.setReceivedDate(sealBatchRequestDTO.getReceivedDate());
-
-        if (sealBatchRequestDTO.getRegisteredByUserId() != null) {
-            User registeredBy = userRepository.findById(sealBatchRequestDTO.getRegisteredByUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registered by user not found"));
-            existingSealBatch.setRegisteredBy(registeredBy);
-        } else {
-            existingSealBatch.setRegisteredBy(null);
+        UUID userId = sealBatchRequestDTO.getRegisteredByUserId();
+        if (userId != null) {
+            User registeredBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            sealBatch.setRegisteredBy(registeredBy);
         }
 
-        SealBatch updatedSealBatch = sealBatchRepository.save(existingSealBatch);
-        return convertToDto(updatedSealBatch);
+        SealBatch savedBatch = sealBatchRepository.save(sealBatch);
+        return convertToDto(savedBatch);
     }
 
-    public void deleteById(UUID id) {
+    public SealBatchResponseDTO updateSealBatch(@NonNull UUID id, @NonNull SealBatchRequestDTO sealBatchRequestDTO) {
+        SealBatch existingBatch = sealBatchRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal batch not found"));
+
+        existingBatch.setManufacturer(sealBatchRequestDTO.getManufacturer());
+        existingBatch.setBatchNumber(sealBatchRequestDTO.getBatchNumber());
+        existingBatch.setStartSealNumber(sealBatchRequestDTO.getStartSealNumber());
+        existingBatch.setEndSealNumber(sealBatchRequestDTO.getEndSealNumber());
+        existingBatch.setQuantity(sealBatchRequestDTO.getQuantity());
+        existingBatch.setReceivedDate(sealBatchRequestDTO.getReceivedDate());
+
+        UUID userId = sealBatchRequestDTO.getRegisteredByUserId();
+        if (userId != null) {
+            User registeredBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            existingBatch.setRegisteredBy(registeredBy);
+        }
+
+        SealBatch updatedBatch = sealBatchRepository.save(existingBatch);
+        return convertToDto(updatedBatch);
+    }
+
+    public void deleteById(@NonNull UUID id) {
         sealBatchRepository.deleteById(id);
     }
 

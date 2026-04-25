@@ -1,11 +1,18 @@
 package com.myseals.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "seal_assignments")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class SealAssignment {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -35,7 +42,7 @@ public class SealAssignment {
     @Column(nullable = false)
     private String status; // e.g., ACTIVE, RETURNED, CANCELLED
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     @Column(nullable = false)
@@ -51,86 +58,5 @@ public class SealAssignment {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
-    }
-
-    // Getters and Setters
-    public UUID getAssignmentId() {
-        return assignmentId;
-    }
-
-    public void setAssignmentId(UUID assignmentId) {
-        this.assignmentId = assignmentId;
-    }
-
-    public Seal getSeal() {
-        return seal;
-    }
-
-    public void setSeal(Seal seal) {
-        this.seal = seal;
-    }
-
-    public User getAssignedToUser() {
-        return assignedToUser;
-    }
-
-    public void setAssignedToUser(User assignedToUser) {
-        this.assignedToUser = assignedToUser;
-    }
-
-    public Office getAssignedToOffice() {
-        return assignedToOffice;
-    }
-
-    public void setAssignedToOffice(Office assignedToOffice) {
-        this.assignedToOffice = assignedToOffice;
-    }
-
-    public User getAssignedBy() {
-        return assignedBy;
-    }
-
-    public void setAssignedBy(User assignedBy) {
-        this.assignedBy = assignedBy;
-    }
-
-    public OffsetDateTime getAssignmentDate() {
-        return assignmentDate;
-    }
-
-    public void setAssignmentDate(OffsetDateTime assignmentDate) {
-        this.assignmentDate = assignmentDate;
-    }
-
-    public OffsetDateTime getReturnDate() {
-        return returnDate;
-    }
-
-    public void setReturnDate(OffsetDateTime returnDate) {
-        this.returnDate = returnDate;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(OffsetDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public OffsetDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(OffsetDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

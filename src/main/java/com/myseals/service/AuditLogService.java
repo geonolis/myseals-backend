@@ -4,7 +4,8 @@ import com.myseals.dto.AuditLogResponseDTO;
 import com.myseals.model.AuditLog;
 import com.myseals.repository.AuditLogRepository;
 import com.myseals.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,12 +14,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AuditLogService {
 
-    @Autowired
-    private AuditLogRepository auditLogRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
 
     public List<AuditLogResponseDTO> findAll() {
         return auditLogRepository.findAll().stream()
@@ -26,12 +25,12 @@ public class AuditLogService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<AuditLogResponseDTO> findById(UUID id) {
+    public Optional<AuditLogResponseDTO> findById(@NonNull UUID id) {
         return auditLogRepository.findById(id).map(this::convertToDto);
     }
 
     // Method to save an audit log (internal use, not exposed via DTO for creation)
-    public AuditLog save(AuditLog auditLog) {
+    public AuditLog save(@NonNull AuditLog auditLog) {
         return auditLogRepository.save(auditLog);
     }
 

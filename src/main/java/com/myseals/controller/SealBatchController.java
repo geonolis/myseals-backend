@@ -3,9 +3,10 @@ package com.myseals.controller;
 import com.myseals.dto.SealBatchRequestDTO;
 import com.myseals.dto.SealBatchResponseDTO;
 import com.myseals.service.SealBatchService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -14,10 +15,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/seal-batches")
+@RequiredArgsConstructor
 public class SealBatchController {
 
-    @Autowired
-    private SealBatchService sealBatchService;
+    private final SealBatchService sealBatchService;
 
     @GetMapping
     public ResponseEntity<List<SealBatchResponseDTO>> getAllSealBatches() {
@@ -26,27 +27,30 @@ public class SealBatchController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SealBatchResponseDTO> getSealBatchById(@PathVariable UUID id) {
-        return sealBatchService.findById(id)
+    public ResponseEntity<SealBatchResponseDTO> getSealBatchById(@PathVariable @NonNull UUID id) {
+        UUID batchId = id;
+        return sealBatchService.findById(batchId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<SealBatchResponseDTO> createSealBatch(@Valid @RequestBody SealBatchRequestDTO sealBatchRequestDTO) {
-        SealBatchResponseDTO createdSealBatch = sealBatchService.createSealBatch(sealBatchRequestDTO);
-        return new ResponseEntity<>(createdSealBatch, HttpStatus.CREATED);
+    public ResponseEntity<SealBatchResponseDTO> createSealBatch(@Valid @RequestBody @NonNull SealBatchRequestDTO sealBatchRequestDTO) {
+        SealBatchResponseDTO createdBatch = sealBatchService.createSealBatch(sealBatchRequestDTO);
+        return new ResponseEntity<>(createdBatch, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SealBatchResponseDTO> updateSealBatch(@PathVariable UUID id, @Valid @RequestBody SealBatchRequestDTO sealBatchRequestDTO) {
-        SealBatchResponseDTO updatedSealBatch = sealBatchService.updateSealBatch(id, sealBatchRequestDTO);
-        return ResponseEntity.ok(updatedSealBatch);
+    public ResponseEntity<SealBatchResponseDTO> updateSealBatch(@PathVariable @NonNull UUID id, @Valid @RequestBody @NonNull SealBatchRequestDTO sealBatchRequestDTO) {
+        UUID batchId = id;
+        SealBatchResponseDTO updatedBatch = sealBatchService.updateSealBatch(batchId, sealBatchRequestDTO);
+        return ResponseEntity.ok(updatedBatch);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSealBatch(@PathVariable UUID id) {
-        sealBatchService.deleteById(id);
+    public ResponseEntity<Void> deleteSealBatch(@PathVariable @NonNull UUID id) {
+        UUID batchId = id;
+        sealBatchService.deleteById(batchId);
         return ResponseEntity.noContent().build();
     }
 }

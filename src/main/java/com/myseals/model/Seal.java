@@ -1,11 +1,18 @@
 package com.myseals.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "seals")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Seal {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -30,7 +37,7 @@ public class Seal {
     @JoinColumn(name = "assigned_to_user_id")
     private User assignedToUser;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OffsetDateTime registeredAt;
 
     @Column(nullable = false)
@@ -45,70 +52,5 @@ public class Seal {
     @PreUpdate
     protected void onUpdate() {
         lastUpdatedAt = OffsetDateTime.now();
-    }
-
-    // Getters and Setters
-    public UUID getSealId() {
-        return sealId;
-    }
-
-    public void setSealId(UUID sealId) {
-        this.sealId = sealId;
-    }
-
-    public String getSealNumber() {
-        return sealNumber;
-    }
-
-    public void setSealNumber(String sealNumber) {
-        this.sealNumber = sealNumber;
-    }
-
-    public SealBatch getBatch() {
-        return batch;
-    }
-
-    public void setBatch(SealBatch batch) {
-        this.batch = batch;
-    }
-
-    public SealStatus getCurrentStatus() {
-        return currentStatus;
-    }
-
-    public void setCurrentStatus(SealStatus currentStatus) {
-        this.currentStatus = currentStatus;
-    }
-
-    public Office getCurrentOffice() {
-        return currentOffice;
-    }
-
-    public void setCurrentOffice(Office currentOffice) {
-        this.currentOffice = currentOffice;
-    }
-
-    public User getAssignedToUser() {
-        return assignedToUser;
-    }
-
-    public void setAssignedToUser(User assignedToUser) {
-        this.assignedToUser = assignedToUser;
-    }
-
-    public OffsetDateTime getRegisteredAt() {
-        return registeredAt;
-    }
-
-    public void setRegisteredAt(OffsetDateTime registeredAt) {
-        this.registeredAt = registeredAt;
-    }
-
-    public OffsetDateTime getLastUpdatedAt() {
-        return lastUpdatedAt;
-    }
-
-    public void setLastUpdatedAt(OffsetDateTime lastUpdatedAt) {
-        this.lastUpdatedAt = lastUpdatedAt;
     }
 }

@@ -1,11 +1,18 @@
 package com.myseals.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "stock_movements")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class StockMovement {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -45,101 +52,12 @@ public class StockMovement {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         movementDate = OffsetDateTime.now();
         createdAt = OffsetDateTime.now();
-    }
-
-    // Getters and Setters
-    public UUID getMovementId() {
-        return movementId;
-    }
-
-    public void setMovementId(UUID movementId) {
-        this.movementId = movementId;
-    }
-
-    public Seal getSeal() {
-        return seal;
-    }
-
-    public void setSeal(Seal seal) {
-        this.seal = seal;
-    }
-
-    public MovementType getMovementType() {
-        return movementType;
-    }
-
-    public void setMovementType(MovementType movementType) {
-        this.movementType = movementType;
-    }
-
-    public Office getFromOffice() {
-        return fromOffice;
-    }
-
-    public void setFromOffice(Office fromOffice) {
-        this.fromOffice = fromOffice;
-    }
-
-    public Office getToOffice() {
-        return toOffice;
-    }
-
-    public void setToOffice(Office toOffice) {
-        this.toOffice = toOffice;
-    }
-
-    public User getFromUser() {
-        return fromUser;
-    }
-
-    public void setFromUser(User fromUser) {
-        this.fromUser = fromUser;
-    }
-
-    public User getToUser() {
-        return toUser;
-    }
-
-    public void setToUser(User toUser) {
-        this.toUser = toUser;
-    }
-
-    public User getMovedBy() {
-        return movedBy;
-    }
-
-    public void setMovedBy(User movedBy) {
-        this.movedBy = movedBy;
-    }
-
-    public OffsetDateTime getMovementDate() {
-        return movementDate;
-    }
-
-    public void setMovementDate(OffsetDateTime movementDate) {
-        this.movementDate = movementDate;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(OffsetDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

@@ -4,8 +4,9 @@ import com.myseals.dto.SealRequestDTO;
 import com.myseals.dto.SealResponseDTO;
 import com.myseals.model.*;
 import com.myseals.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -15,16 +16,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SealService {
 
-    @Autowired
-    private SealRepository sealRepository;
-    @Autowired
-    private SealBatchRepository sealBatchRepository;
-    @Autowired
-    private OfficeRepository officeRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final SealRepository sealRepository;
+    private final SealBatchRepository sealBatchRepository;
+    private final OfficeRepository officeRepository;
+    private final UserRepository userRepository;
 
     public List<SealResponseDTO> findAll() {
         return sealRepository.findAll().stream()
@@ -32,64 +30,78 @@ public class SealService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<SealResponseDTO> findById(UUID id) {
+    public Optional<SealResponseDTO> findById(@NonNull UUID id) {
         return sealRepository.findById(id).map(this::convertToDto);
     }
 
-    public SealResponseDTO createSeal(SealRequestDTO sealRequestDTO) {
+    public SealResponseDTO createSeal(@NonNull SealRequestDTO sealRequestDTO) {
         if (sealRepository.findBySealNumber(sealRequestDTO.getSealNumber()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Seal with this number already exists");
-        }
-
-        SealBatch batch = sealBatchRepository.findById(sealRequestDTO.getBatchId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal batch not found"));
-
-        Office currentOffice = officeRepository.findById(sealRequestDTO.getCurrentOfficeId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
-
-        User assignedToUser = null;
-        if (sealRequestDTO.getAssignedToUserId() != null) {
-            assignedToUser = userRepository.findById(sealRequestDTO.getAssignedToUserId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assigned user not found"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Seal number already exists");
         }
 
         Seal seal = new Seal();
         seal.setSealNumber(sealRequestDTO.getSealNumber());
-        seal.setBatch(batch);
-        seal.setCurrentStatus(SealStatus.valueOf(sealRequestDTO.getCurrentStatus()));
-        seal.setCurrentOffice(currentOffice);
-        seal.setAssignedToUser(assignedToUser);
+        
+        if (sealRequestDTO.getCurrentStatus() != null) {
+            seal.setCurrentStatus(SealStatus.valueOf(sealRequestDTO.getCurrentStatus()));
+        } else {
+            seal.setCurrentStatus(SealStatus.REGISTERED); // Default status
+        }
+
+        UUID batchId = sealRequestDTO.getBatchId();
+        if (batchId != null) {
+            SealBatch batch = sealBatchRepository.findById(batchId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal batch not found"));
+            seal.setBatch(batch);
+        }
+
+        UUID officeId = sealRequestDTO.getCurrentOfficeId();
+        if (officeId != null) {
+            Office office = officeRepository.findById(officeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
+            seal.setCurrentOffice(office);
+        }
+
+        UUID userId = sealRequestDTO.getAssignedToUserId();
+        if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            seal.setAssignedToUser(user);
+        }
 
         Seal savedSeal = sealRepository.save(seal);
         return convertToDto(savedSeal);
     }
 
-    public SealResponseDTO updateSeal(UUID id, SealRequestDTO sealRequestDTO) {
+    public SealResponseDTO updateSeal(@NonNull UUID id, @NonNull SealRequestDTO sealRequestDTO) {
         Seal existingSeal = sealRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal not found"));
 
         existingSeal.setSealNumber(sealRequestDTO.getSealNumber());
+        
+        if (sealRequestDTO.getCurrentStatus() != null) {
+            existingSeal.setCurrentStatus(SealStatus.valueOf(sealRequestDTO.getCurrentStatus()));
+        }
 
-        if (!existingSeal.getBatch().getBatchId().equals(sealRequestDTO.getBatchId())) {
-            SealBatch batch = sealBatchRepository.findById(sealRequestDTO.getBatchId())
+        UUID batchId = sealRequestDTO.getBatchId();
+        if (batchId != null) {
+            SealBatch batch = sealBatchRepository.findById(batchId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seal batch not found"));
             existingSeal.setBatch(batch);
         }
 
-        existingSeal.setCurrentStatus(SealStatus.valueOf(sealRequestDTO.getCurrentStatus()));
-
-        if (!existingSeal.getCurrentOffice().getOfficeId().equals(sealRequestDTO.getCurrentOfficeId())) {
-            Office currentOffice = officeRepository.findById(sealRequestDTO.getCurrentOfficeId())
+        UUID officeId = sealRequestDTO.getCurrentOfficeId();
+        if (officeId != null) {
+            Office office = officeRepository.findById(officeId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
-            existingSeal.setCurrentOffice(currentOffice);
+            existingSeal.setCurrentOffice(office);
         }
 
-        if (sealRequestDTO.getAssignedToUserId() != null) {
-            if (existingSeal.getAssignedToUser() == null || !existingSeal.getAssignedToUser().getUserId().equals(sealRequestDTO.getAssignedToUserId())) {
-                User assignedToUser = userRepository.findById(sealRequestDTO.getAssignedToUserId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assigned user not found"));
-                existingSeal.setAssignedToUser(assignedToUser);
-            }
+        UUID userId = sealRequestDTO.getAssignedToUserId();
+        if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            existingSeal.setAssignedToUser(user);
         } else {
             existingSeal.setAssignedToUser(null);
         }
@@ -98,7 +110,7 @@ public class SealService {
         return convertToDto(updatedSeal);
     }
 
-    public void deleteById(UUID id) {
+    public void deleteById(@NonNull UUID id) {
         sealRepository.deleteById(id);
     }
 

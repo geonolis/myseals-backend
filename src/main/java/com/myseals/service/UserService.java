@@ -8,26 +8,24 @@ import com.myseals.repository.RoleRepository;
 import com.myseals.repository.UserRepository;
 import com.myseals.dto.UserRequestDTO;
 import com.myseals.dto.UserResponseDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private RoleRepository roleRepository;
-    @Autowired
-    private OfficeRepository officeRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final OfficeRepository officeRepository;
 
     public List<UserResponseDTO> findAll() {
         return userRepository.findAll().stream()
@@ -35,55 +33,62 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<UserResponseDTO> findById(UUID id) {
+    public Optional<UserResponseDTO> findById(@NonNull UUID id) {
         return userRepository.findById(id).map(this::convertToDto);
     }
 
-    public UserResponseDTO createUser(UserRequestDTO userRequestDTO) {
-        // In a real application, auth0UserId would come from Auth0 after user registration/login
-        // For now, we'll generate a placeholder or expect it if provided for testing
-        String auth0UserId = "auth0|" + UUID.randomUUID().toString().replace("-", "");
-
+    public UserResponseDTO createUser(@NonNull UserRequestDTO userRequestDTO) {
         if (userRepository.findByEmail(userRequestDTO.getEmail()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User with this email already exists");
         }
 
         User user = new User();
-        user.setAuth0UserId(auth0UserId);
+        user.setAuth0UserId(userRequestDTO.getAuth0UserId());
         user.setEmail(userRequestDTO.getEmail());
         user.setFullName(userRequestDTO.getFullName());
         user.setPhoneNumber(userRequestDTO.getPhoneNumber());
-        user.setActive(userRequestDTO.getIsActive());
+        user.setActive(userRequestDTO.getActive() != null ? userRequestDTO.getActive() : true);
 
-        Office office = officeRepository.findById(userRequestDTO.getOfficeId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
-        user.setOffice(office);
+        UUID officeId = userRequestDTO.getOfficeId();
+        if (officeId != null) {
+            Office office = officeRepository.findById(officeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
+            user.setOffice(office);
+        }
 
-        Role role = roleRepository.findById(userRequestDTO.getRoleId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
-        user.setRole(role);
+        UUID roleId = userRequestDTO.getRoleId();
+        if (roleId != null) {
+            Role role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
+            user.setRole(role);
+        }
 
         User savedUser = userRepository.save(user);
         return convertToDto(savedUser);
     }
 
-    public UserResponseDTO updateUser(UUID id, UserRequestDTO userRequestDTO) {
+    public UserResponseDTO updateUser(@NonNull UUID id, @NonNull UserRequestDTO userRequestDTO) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        existingUser.setEmail(userRequestDTO.getEmail());
         existingUser.setFullName(userRequestDTO.getFullName());
         existingUser.setPhoneNumber(userRequestDTO.getPhoneNumber());
-        existingUser.setActive(userRequestDTO.getIsActive());
-
-        if (!existingUser.getOffice().getOfficeId().equals(userRequestDTO.getOfficeId())) {
-            Office office = officeRepository.findById(userRequestDTO.getOfficeId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
-            existingUser.setOffice(office);
+        if (userRequestDTO.getActive() != null) {
+            existingUser.setActive(userRequestDTO.getActive());
         }
 
-        if (!existingUser.getRole().getRoleId().equals(userRequestDTO.getRoleId())) {
-            Role role = roleRepository.findById(userRequestDTO.getRoleId())
+        UUID officeId = userRequestDTO.getOfficeId();
+        if (officeId != null) {
+            Office office = officeRepository.findById(officeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Office not found"));
+            existingUser.setOffice(office);
+        } else {
+            existingUser.setOffice(null);
+        }
+
+        UUID roleId = userRequestDTO.getRoleId();
+        if (roleId != null) {
+            Role role = roleRepository.findById(roleId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
             existingUser.setRole(role);
         }
@@ -92,7 +97,7 @@ public class UserService {
         return convertToDto(updatedUser);
     }
 
-    public void deleteById(UUID id) {
+    public void deleteById(@NonNull UUID id) {
         userRepository.deleteById(id);
     }
 
@@ -103,7 +108,7 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
         dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setIsActive(user.getActive());
+        dto.setActive(user.getActive());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
 
